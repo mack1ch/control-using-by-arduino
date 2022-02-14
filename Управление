@@ -8,7 +8,13 @@
 #define RIGHT_SENSOR_PIN 9
  
 // Скорость, с которой мы движемся вперёд (0-255)
-#define SPEED            35
+#define SPEED            100
+ 
+// Скорость прохождения сложных участков
+#define SLOW_SPEED       35
+ 
+#define BACK_SLOW_SPEED  30
+#define BACK_FAST_SPEED  50
  
 // Коэффициент, задающий во сколько раз нужно затормозить
 // одно из колёс для поворота
@@ -18,19 +24,28 @@
 #define STATE_RIGHT      1
 #define STATE_LEFT       2
  
+#define SPEED_STEP       2
+ 
+#define FAST_TIME_THRESHOLD     500
+ 
 int state = STATE_FORWARD;
+int currentSpeed = SPEED;
+int fastTime = 0;
  
 void runForward() 
 {
     state = STATE_FORWARD;
  
-    // Для регулировки скорости `SPEED` может принимать значения от 0 до 255,
-    // чем болше, тем быстрее. 
-    analogWrite(SPEED_LEFT, SPEED);
-    analogWrite(SPEED_RIGHT, SPEED);
+    fastTime += 1;
+    if (fastTime < FAST_TIME_THRESHOLD) {
+        currentSpeed = SLOW_SPEED;
+    } else {
+        currentSpeed = min(currentSpeed + SPEED_STEP, SPEED);
+    }
  
-    // Если в DIR_LEFT или DIR_RIGHT пишем HIGH, мотор будет двигать соответствующее колесо
-    // вперёд, если LOW - назад.
+    analogWrite(SPEED_LEFT, currentSpeed);
+    analogWrite(SPEED_RIGHT, currentSpeed);
+ 
     digitalWrite(DIR_LEFT, HIGH);
     digitalWrite(DIR_RIGHT, HIGH);
 }
@@ -38,10 +53,11 @@ void runForward()
 void steerRight() 
 {
     state = STATE_RIGHT;
+    fastTime = 0;
  
     // Замедляем правое колесо относительно левого,
     // чтобы начать поворот
-    analogWrite(SPEED_RIGHT, SPEED / BRAKE_K);
+    analogWrite(SPEED_RIGHT, 0);
     analogWrite(SPEED_LEFT, SPEED);
  
     digitalWrite(DIR_LEFT, HIGH);
@@ -51,12 +67,33 @@ void steerRight()
 void steerLeft() 
 {
     state = STATE_LEFT;
+    fastTime = 0;
  
-    analogWrite(SPEED_LEFT, SPEED / BRAKE_K);
+    analogWrite(SPEED_LEFT, 0);
     analogWrite(SPEED_RIGHT, SPEED);
  
     digitalWrite(DIR_LEFT, HIGH);
     digitalWrite(DIR_RIGHT, HIGH);
+}
+ 
+ 
+void stepBack(int duration, int state) {
+    if (!duration)
+        return;
+ 
+    // В зависимости от направления поворота при движении назад будем
+    // делать небольшой разворот 
+    int leftSpeed = (state == STATE_RIGHT) ? BACK_SLOW_SPEED : BACK_FAST_SPEED;
+    int rightSpeed = (state == STATE_LEFT) ? BACK_SLOW_SPEED : BACK_FAST_SPEED;
+ 
+    analogWrite(SPEED_LEFT, leftSpeed);
+    analogWrite(SPEED_RIGHT, rightSpeed);
+ 
+    // реверс колёс
+    digitalWrite(DIR_RIGHT, LOW);
+    digitalWrite(DIR_LEFT, LOW);
+ 
+    delay(duration);
 }
  
  
@@ -92,10 +129,10 @@ void loop()
         targetState = STATE_RIGHT;
     }
  
-    if (state == targetState) {
-        // мы уже делаём всё что нужно,
-        // делаем измерения заново
-        return;
+    if (state == STATE_FORWARD && targetState != STATE_FORWARD) {
+        int brakeTime = (currentSpeed > SLOW_SPEED) ?
+            currentSpeed : 0;
+        stepBack(brakeTime, targetState);
     }
  
     switch (targetState) {
@@ -112,6 +149,4 @@ void loop()
             break;
     }
  
-    // не позволяем сильно вилять на прямой
-    delay(50);
 }
