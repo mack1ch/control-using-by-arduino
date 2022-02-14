@@ -1,0 +1,94 @@
+//Объявляем переменные
+char incomingbyte; // переменная для приема данных
+//motors A (RIGHT)
+int R_A_IA = 9; // A-IA
+int R_A_IB = 10; // A-IB
+//motors B (LEFT)
+int L_B_IA = 11; // B-IA
+int L_B_IB = 12; // B-IB
+//Инициализация переменных
+void setup() {
+  Serial.begin(38400);
+  //motors RIGHT
+  pinMode(R_A_IA,OUTPUT);
+  digitalWrite(R_A_IA, HIGH);
+  pinMode(R_A_IB,OUTPUT);
+  digitalWrite(R_A_IB, HIGH);
+  //motors LEFT
+  pinMode(L_B_IA,OUTPUT);
+  digitalWrite(L_B_IA, HIGH);  
+  pinMode(L_B_IB,OUTPUT);
+  digitalWrite(L_B_IB, HIGH); 
+}
+
+void go_forward(){
+  //motors LEFT
+  digitalWrite(L_B_IA, LOW);  
+  digitalWrite(L_B_IB, HIGH); 
+  //motors RIGHT
+  digitalWrite(R_A_IA, LOW);
+  digitalWrite(R_A_IB, HIGH);
+}
+
+void go_back(){
+  //motors LEFT
+  digitalWrite(L_B_IA, HIGH);  
+  digitalWrite(L_B_IB, LOW); 
+  //motors RIGHT
+  digitalWrite(R_A_IA, HIGH);
+  digitalWrite(R_A_IB, LOW);
+}
+
+void go_right(){
+  //motors LEFT
+  digitalWrite(L_B_IA, LOW);  
+  digitalWrite(L_B_IB, HIGH); 
+  //motors RIGHT
+  digitalWrite(R_A_IA, LOW);
+  digitalWrite(R_A_IB, LOW);
+}
+
+void go_left(){
+  //motors LEFT
+  digitalWrite(L_B_IA, LOW);  
+  digitalWrite(L_B_IB, LOW); 
+  //motors RIGHT
+  digitalWrite(R_A_IA, LOW);
+  digitalWrite(R_A_IB, HIGH);
+}
+
+void stop_robot(){
+  //motors LEFT
+  digitalWrite(L_B_IA, LOW);  
+  digitalWrite(L_B_IB, LOW); 
+  //motors RIGHT
+  digitalWrite(R_A_IA, LOW);
+  digitalWrite(R_A_IB, LOW);
+}
+
+//Основной цикл программы
+void loop() {
+  if (Serial.available() > 0){
+    incomingbyte = Serial.read();
+      if (incomingbyte == '1'){
+        go_forward();
+        Serial.println("FORWARD");
+      }
+      if (incomingbyte == '2'){
+        go_back();
+        Serial.println("BACK");
+      }   
+      if (incomingbyte == '3'){
+        go_right(); 
+        Serial.println("RIGHT");
+      }
+      if (incomingbyte == '4'){
+        go_left();
+        Serial.println("LEFT");
+      }         
+      if (incomingbyte=='0'){
+        stop_robot();
+        Serial.println("STOP");
+      }
+  } 
+}
